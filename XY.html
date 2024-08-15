@@ -7,9 +7,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.0/math.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/latex.js/0.12.6/latex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.0.6/dist/pizzip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.21.0/build/docxtemplater.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.0.6/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.21.0/docxtemplater.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         #scatter-plot-interface {
             margin: 20px;
@@ -217,49 +217,61 @@
             }
 
             const canvas = document.getElementById('scatterPlot');
-            canvas.toBlob(function(blob) {
-                const zip = new PizZip();
-                const doc = new Docxtemplater(zip, {paragraphLoop: true, linebreaks: true});
+            const imageData = canvas.toDataURL('image/png');
 
-                const tableRows = dataPoints.map(point => `<tr><td>${point.index}</td><td>${point.x}</td><td>${point.y}</td></tr>`).join('');
+            const content = `
+                <w:p>
+                    <w:r>
+                        <w:t>散布圖與回歸分析</w:t>
+                    </w:r>
+                </w:p>
+                <w:p>
+                    <w:r>
+                        <w:pict>
+                            <v:shape type="#_x0000_t75" style="width:500pt;height:500pt">
+                                <v:imagedata src="${imageData}" />
+                            </v:shape>
+                        </w:pict>
+                    </w:r>
+                </w:p>
+                <w:p>
+                    <w:r>
+                        <w:t>${document.getElementById('equation').innerText}</w:t>
+                    </w:r>
+                </w:p>
+                <w:p>
+                    <w:r>
+                        <w:t>${document.getElementById('r2').innerText}</w:t>
+                    </w:r>
+                </w:p>
+                <w:p>
+                    <w:r>
+                        <w:t>數據點</w:t>
+                    </w:r>
+                </w:p>
+                <w:tbl>
+                    ${dataPoints.map(point => `
+                        <w:tr>
+                            <w:tc><w:t>${point.index}</w:t></w:tc>
+                            <w:tc><w:t>${point.x}</w:t></w:tc>
+                            <w:tc><w:t>${point.y}</w:t></w:tc>
+                        </w:tr>`).join('')}
+                </w:tbl>
+            `;
 
-                const docContent = `
-                    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-                    <head><meta charset='utf-8'><title>散布圖與回歸分析</title></head>
-                    <body>
-                    <h1>散布圖與回歸分析</h1>
-                    <p><img src="${URL.createObjectURL(blob)}" alt="散布圖"></p>
-                    <h2>回歸方程式</h2>
-                    <p>${document.getElementById('equation').innerText}</p>
-                    <h2>R²</h2>
-                    <p>${document.getElementById('r2').innerText}</p>
-                    <h2>數據點</h2>
-                    <table border="1">
-                        <thead>
-                            <tr>
-                                <th>INDEX</th>
-                                <th>X</th>
-                                <th>Y</th>
-                            </tr>
-                        </thead>
-                        <tbody>${tableRows}</tbody>
-                    </table>
-                    </body>
-                    </html>
-                `;
+            const zip = new PizZip();
+            const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+            doc.loadZip(zip);
 
-                const zipContent = new TextEncoder().encode(docContent);
-                zip.file("word/document.xml", zipContent);
-                doc.setData({});
-                doc.render();
+            doc.setData({});
+            doc.render();
 
-                const out = doc.getZip().generate({
-                    type: "blob",
-                    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                });
-
-                saveAs(out, "scatter_plot_analysis.docx");
+            const out = doc.getZip().generate({
+                type: "blob",
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             });
+
+            saveAs(out, "scatter_plot_analysis.docx");
         }
     </script>
 </body>
