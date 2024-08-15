@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>散布圖與回歸分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.0/math.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/latex.js/0.12.6/latex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.0.6/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.21.0/docxtemplater.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        #scatter-plot-interface {
+            margin: 20px;
+        }
+        
+        #scatter-plot-interface div {
+            margin-bottom: 10px;
+        }
+
+        #scatterPlot {
+            border: 1px solid #000; /* 添加邊框 */
+            width: 566px;  /* 控制畫布的顯示大小 */
+            height: 566px; /* 控制畫布的顯示大小 */
+        }
+
+        button {
+            margin-top: 10px;
+        }
+
+        .latex {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="scatter-plot-interface">
+        <h1>散布圖與回歸分析</h1>
+        
+        <div>
+            <label for="x-value">輸入X值:</label>
+            <input type="number" id="x-value" placeholder="X值">
+            <label for="y-value">輸入Y值:</label>
+            <input type="number" id="y-value" placeholder="Y值">
+            <button onclick="addPoint()">輸入</button>
+        </div>
+
+        <div>
+            <label for="x-unit">X軸單位 (支援LaTeX語法):</label>
+            <input type="text" id="x-unit" placeholder="例如：$\\alpha$">
+            <label for="y-unit">Y軸單位 (支援LaTeX語法):</label>
+            <input type="text" id="y-unit" placeholder="例如：$\\beta$">
+        </div>
+        
+        <div>
+            <label for="x-min">X軸最小值:</label>
+            <input type="number" id="x-min" placeholder="X軸最小值">
+            <label for="x-max">X軸最大值:</label>
+            <input type="number" id="x-max" placeholder="X軸最大值">
+        </div>
+        <div>
+            <label for="y-min">Y軸最小值:</label>
+            <input type="number" id="y-min" placeholder="Y軸最小值">
+            <label for="y-max">Y軸最大值:</label>
+            <input type="number" id="y-max" placeholder="Y軸最大值">
+        </div>
+        <button onclick="generatePlot()">產生散布圖</button>
+
+        <canvas id="scatterPlot"></canvas>
+        
+        <h2>回歸方程式</h2>
+        <p id="equation" class="latex"></p>
+        <p id="r2" class="latex"></p>
+
+        <h2>數據點</h2>
+        <table id="data-table" border="1">
+            <thead>
+                <tr>
+                    <th>INDEX</th>
+                    <th>X</th>
+                    <th>Y</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <button onclick="downloadWord()">下載Word文件</button>
+    </div>
+
+    <script>
+        let dataPoints = [];
+        let scatterChart;
+
+        function addPoint() {
+            const xValue = parseFloat(document.getElementById('x-value').value);
+            const yValue = parseFloat(document.getElementById('y-value').value);
+
+            if (isNaN(xValue) || isNaN(yValue)) {
+                alert('請輸入有效的數據！');
+                return;
+            }
+
+            const index = dataPoints.length + 1;
+            dataPoints.push({index: index, x: xValue, y: yValue});
+
+            const table = document.getElementById('data-table').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+            newRow.insertCell(0).innerText = index;
+            newRow.insertCell(1).innerText = xValue;
+            newRow.insertCell(2).innerText = yValue;
+
+            document.getElementById('x-value').value = '';
+            document.getElementById('y-value').value = '';
+        }
+
+        function generatePlot() {
+            if (dataPoints.length < 2) {
+                alert('請至少輸入兩組數據點來進行回歸分析。');
+                return;
+            }
+
+            const xValues = dataPoints.map(point => point.x);
+            const yValues = dataPoints.map(point => point.y);
+
+            const n = xValues.length;
+            const sumX = math.sum(xValues);
+            const sumY = math.sum(yValues);
+            const sumXY = math.sum(xValues.map((x, i) => x * yValues[i]));
+            const sumXX = math.sum(xValues.map(x => x * x));
+
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+
+            const yPredicted = xValues.map(x => slope * x + intercept);
+            const ssTotal = math.sum(yValues.map(y => Math.pow(y - math.mean(yValues), 2)));
+            const ssResidual = math.sum(yValues.map((y, i) => Math.pow(y - yPredicted[i], 2)));
+            const rSquared = 1 - ssResidual / ssTotal;
+
+            document.getElementById('equation').innerText = `回歸方程式: y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)}`;
+            document.getElementById('r2').innerText = `R² = ${rSquared.toFixed(2)}`;
+
+            const ctx = document.getElementById('scatterPlot').getContext('2d');
+
+            const scatterData = {
+                datasets: [{
+                    label: '散布圖',
+                    data: dataPoints.map(point => ({x: point.x, y: point.y})),
+                    backgroundColor: 'rgba(75, 192, 192, 1)',
+                }, {
+                    label: '回歸線',
+                    data: [{x: Math.min(...xValues), y: Math.min(...yPredicted)}, {x: Math.max(...xValues), y: Math.max(...yPredicted)}],
+                    type: 'line',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    fill: false,
+                }]
+            };
+
+            const xUnit = document.getElementById('x-unit').value;
+            const yUnit = document.getElementById('y-unit').value;
+
+            const options = {
+                responsive: false,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: latexToHTML(xUnit)
+                        },
+                        min: document.getElementById('x-min').value ? Number(document.getElementById('x-min').value) : undefined,
+                        max: document.getElementById('x-max').value ? Number(document.getElementById('x-max').value) : undefined
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: latexToHTML(yUnit)
+                        },
+                        min: document.getElementById('y-min').value ? Number(document.getElementById('y-min').value) : undefined,
+                        max: document.getElementById('y-max').value ? Number(document.getElementById('y-max').value) : undefined
+                    }
+                }
+            };
+
+            if (scatterChart) {
+                scatterChart.destroy();
+            }
+
+            scatterChart = new Chart(ctx, {
+                type: 'scatter',
+                data: scatterData,
+                options: options
+            });
+
+            renderLaTeX();
+        }
+
+        function latexToHTML(latexString) {
+            if (!latexString) return '';
+            return latexString.replace(/\\(\w+)/g, '<span class="latex">\\$1</span>');
+        }
+
+        function renderLaTeX() {
+            document.querySelectorAll('.latex').forEach(el => {
+                el.innerHTML = latexjs.renderToString(el.textContent);
+            });
+        }
+
+        function downloadWord() {
+            if (!scatterChart) {
+                alert('請先生成圖表再下載Word文件。');
+                return;
+            }
+
+            const canvas = document.getElementById('scatterPlot');
+            const imageData = canvas.toDataURL('image/png');
+
+            const zip = new PizZip();
+            const doc = new window.docxtemplater().loadZip(zip);
+
+            const tableRows = dataPoints.map(point => `<tr><td>${point.index}</td><td>${point.x}</td><td>${point.y}</td></tr>`).join('');
+
+            const docContent = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head><meta charset='utf-8'><title>散布圖與回歸分析</title></head>
+                <body>
+                <h1>散布圖與回歸分析</h1>
+                <img src="${imageData}" alt="散布圖">
+                <h2>回歸方程式</h2>
+                <p>${document.getElementById('equation').innerText}</p>
+                <h2>R²</h2>
+                <p>${document.getElementById('r2').innerText}</p>
+                <h2>數據點</h2>
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th>INDEX</th>
+                            <th>X</th>
+                            <th>Y</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                </table>
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([docContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+            saveAs(blob, 'scatter_plot_analysis.docx');
+        }
+    </script>
+</body>
+</html>
