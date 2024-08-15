@@ -6,87 +6,59 @@
     <title>散布圖與回歸分析</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.0/math.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/latex.js/0.12.6/latex.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.0.6/pizzip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.21.0/docxtemplater.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <style>
-        #scatter-plot-interface {
-            margin: 20px;
-        }
-        
-        #scatter-plot-interface div {
-            margin-bottom: 10px;
-        }
-
-        #scatterPlot {
-            border: 1px solid #000; /* 添加邊框 */
-            width: 566px;  /* 控制畫布的顯示大小 */
-            height: 566px; /* 控制畫布的顯示大小 */
-        }
-
-        button {
-            margin-top: 10px;
-        }
-
-        .latex {
-            display: inline-block;
-        }
-    </style>
 </head>
 <body>
-    <div id="scatter-plot-interface">
-        <h1>散布圖與回歸分析</h1>
-        
-        <div>
-            <label for="x-value">輸入X值:</label>
-            <input type="number" id="x-value" placeholder="X值">
-            <label for="y-value">輸入Y值:</label>
-            <input type="number" id="y-value" placeholder="Y值">
-            <button onclick="addPoint()">輸入</button>
-        </div>
+    <h1>散布圖與回歸分析</h1>
 
-        <div>
-            <label for="x-unit">X軸單位 (支援LaTeX語法):</label>
-            <input type="text" id="x-unit" placeholder="例如：$\\alpha$">
-            <label for="y-unit">Y軸單位 (支援LaTeX語法):</label>
-            <input type="text" id="y-unit" placeholder="例如：$\\beta$">
-        </div>
-        
-        <div>
-            <label for="x-min">X軸最小值:</label>
-            <input type="number" id="x-min" placeholder="X軸最小值">
-            <label for="x-max">X軸最大值:</label>
-            <input type="number" id="x-max" placeholder="X軸最大值">
-        </div>
-        <div>
-            <label for="y-min">Y軸最小值:</label>
-            <input type="number" id="y-min" placeholder="Y軸最小值">
-            <label for="y-max">Y軸最大值:</label>
-            <input type="number" id="y-max" placeholder="Y軸最大值">
-        </div>
-        <button onclick="generatePlot()">產生散布圖</button>
-
-        <canvas id="scatterPlot"></canvas>
-        
-        <h2>回歸方程式</h2>
-        <p id="equation" class="latex"></p>
-        <p id="r2" class="latex"></p>
-
-        <h2>數據點</h2>
-        <table id="data-table" border="1">
-            <thead>
-                <tr>
-                    <th>INDEX</th>
-                    <th>X</th>
-                    <th>Y</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-
-        <button onclick="downloadWord()">下載Word文件</button>
+    <div>
+        <label for="x-value">輸入X值:</label>
+        <input type="number" id="x-value" placeholder="X值">
+        <label for="y-value">輸入Y值:</label>
+        <input type="number" id="y-value" placeholder="Y值">
+        <button onclick="addPoint()">輸入</button>
     </div>
+
+    <div>
+        <label for="x-unit">X軸單位 (支援LaTeX語法):</label>
+        <input type="text" id="x-unit" placeholder="例如：$\\alpha$">
+        <label for="y-unit">Y軸單位 (支援LaTeX語法):</label>
+        <input type="text" id="y-unit" placeholder="例如：$\\beta$">
+    </div>
+    
+    <div>
+        <label for="x-min">X軸最小值:</label>
+        <input type="number" id="x-min" placeholder="X軸最小值">
+        <label for="x-max">X軸最大值:</label>
+        <input type="number" id="x-max" placeholder="X軸最大值">
+    </div>
+    <div>
+        <label for="y-min">Y軸最小值:</label>
+        <input type="number" id="y-min" placeholder="Y軸最小值">
+        <label for="y-max">Y軸最大值:</label>
+        <input type="number" id="y-max" placeholder="Y軸最大值">
+    </div>
+    <button onclick="generatePlot()">產生散布圖</button>
+
+    <canvas id="scatterPlot"></canvas>
+    
+    <h2>回歸方程式</h2>
+    <p id="equation"></p>
+    <p id="r2"></p>
+
+    <h2>數據點</h2>
+    <table id="data-table" border="1">
+        <thead>
+            <tr>
+                <th>INDEX</th>
+                <th>X</th>
+                <th>Y</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <button onclick="downloadWordWithChart()">下載包含圖表的Word文件</button>
 
     <script>
         let dataPoints = [];
@@ -102,7 +74,7 @@
             }
 
             const index = dataPoints.length + 1;
-            dataPoints.push({index: index, x: xValue, y: yValue});
+            dataPoints.push({ index: index, x: xValue, y: yValue });
 
             const table = document.getElementById('data-table').getElementsByTagName('tbody')[0];
             const newRow = table.insertRow();
@@ -168,7 +140,7 @@
                         position: 'bottom',
                         title: {
                             display: true,
-                            text: latexToHTML(xUnit)
+                            text: xUnit ? xUnit : 'X軸'
                         },
                         min: document.getElementById('x-min').value ? Number(document.getElementById('x-min').value) : undefined,
                         max: document.getElementById('x-max').value ? Number(document.getElementById('x-max').value) : undefined
@@ -178,7 +150,7 @@
                         position: 'left',
                         title: {
                             display: true,
-                            text: latexToHTML(yUnit)
+                            text: yUnit ? yUnit : 'Y軸'
                         },
                         min: document.getElementById('y-min').value ? Number(document.getElementById('y-min').value) : undefined,
                         max: document.getElementById('y-max').value ? Number(document.getElementById('y-max').value) : undefined
@@ -195,83 +167,59 @@
                 data: scatterData,
                 options: options
             });
-
-            renderLaTeX();
         }
 
-        function latexToHTML(latexString) {
-            if (!latexString) return '';
-            return latexString.replace(/\\(\w+)/g, '<span class="latex">\\$1</span>');
-        }
-
-        function renderLaTeX() {
-            document.querySelectorAll('.latex').forEach(el => {
-                el.innerHTML = latexjs.renderToString(el.textContent);
-            });
-        }
-
-        function downloadWord() {
+        function downloadWordWithChart() {
             if (!scatterChart) {
                 alert('請先生成圖表再下載Word文件。');
                 return;
             }
 
             const canvas = document.getElementById('scatterPlot');
-            const imageData = canvas.toDataURL('image/png');
+            canvas.toBlob(function(blob) {
+                const reader = new FileReader();
+                reader.onloadend = function() {
+                    const imageDataUrl = reader.result;
 
-            const content = `
-                <w:p>
-                    <w:r>
-                        <w:t>散布圖與回歸分析</w:t>
-                    </w:r>
-                </w:p>
-                <w:p>
-                    <w:r>
-                        <w:pict>
-                            <v:shape type="#_x0000_t75" style="width:500pt;height:500pt">
-                                <v:imagedata src="${imageData}" />
-                            </v:shape>
-                        </w:pict>
-                    </w:r>
-                </w:p>
-                <w:p>
-                    <w:r>
-                        <w:t>${document.getElementById('equation').innerText}</w:t>
-                    </w:r>
-                </w:p>
-                <w:p>
-                    <w:r>
-                        <w:t>${document.getElementById('r2').innerText}</w:t>
-                    </w:r>
-                </w:p>
-                <w:p>
-                    <w:r>
-                        <w:t>數據點</w:t>
-                    </w:r>
-                </w:p>
-                <w:tbl>
-                    ${dataPoints.map(point => `
-                        <w:tr>
-                            <w:tc><w:t>${point.index}</w:t></w:tc>
-                            <w:tc><w:t>${point.x}</w:t></w:tc>
-                            <w:tc><w:t>${point.y}</w:t></w:tc>
-                        </w:tr>`).join('')}
-                </w:tbl>
-            `;
+                    const tableContent = dataPoints.map(point => `
+                        <tr>
+                            <td>${point.index}</td>
+                            <td>${point.x}</td>
+                            <td>${point.y}</td>
+                        </tr>
+                    `).join('');
 
-            const zip = new PizZip();
-            const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
-            doc.loadZip(zip);
+                    const content = `
+                        <html xmlns:o='urn:schemas-microsoft-com:office:office'
+                              xmlns:w='urn:schemas-microsoft-com:office:word'
+                              xmlns='http://www.w3.org/TR/REC-html40'>
+                        <head><meta charset='utf-8'></head>
+                        <body>
+                        <div>
+                            <p>這是一個包含散布圖、回歸方程式、R²值和表格的Word文件。</p>
+                            <img src="${imageDataUrl}" alt="Scatter Plot"/>
+                            <p>${document.getElementById('equation').innerText}</p>
+                            <p>${document.getElementById('r2').innerText}</p>
+                            <table border="1">
+                                <tr>
+                                    <th>INDEX</th>
+                                    <th>X</th>
+                                    <th>Y</th>
+                                </tr>
+                                ${tableContent}
+                            </table>
+                        </div>
+                        </body>
+                        </html>
+                    `;
 
-            doc.setData({});
-            doc.render();
-
-            const out = doc.getZip().generate({
-                type: "blob",
-                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    const blobContent = new Blob(['\ufeff', content], {
+                        type: 'application/msword'
+                    });
+                    saveAs(blobContent, 'scatter_plot_analysis.doc');
+                };
+                reader.readAsDataURL(blob);
             });
-
-            saveAs(out, "scatter_plot_analysis.docx");
         }
     </script>
 </body>
